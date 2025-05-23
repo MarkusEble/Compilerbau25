@@ -91,7 +91,6 @@ public class StmtParser {
         return null; // unreachable
     }
 
-<<<<<<< HEAD
     public ASTStmtNode parseFunctionStmt() throws Exception {
         m_lexer.expect(Type.FUNCTION);
         String functionName = m_lexer.m_currentToken.m_value;
