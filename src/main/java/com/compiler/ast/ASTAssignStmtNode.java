@@ -31,6 +31,10 @@ public class ASTAssignStmtNode extends ASTStmtNode{
 	}
 
 	@Override
-	public void print(OutputStreamWriter outStream, String indent) throws Exception {}
+	public void print(OutputStreamWriter outStream, String indent) throws Exception {
+		outStream.write(indent + "ASSIGN: " + identifier.m_name + "\n");
+		outStream.write(indent + "\t" + "expr: \n");
+		expr.print(outStream, indent + "\t\t");
+	}
 
 }
