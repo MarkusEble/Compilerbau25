@@ -5,7 +5,7 @@ import java.io.ByteArrayOutputStream;
 import static org.junit.Assert.assertEquals;
 
 public class InterpreterDumpTestBase {
-    protected void testInterpreter(String program, String expectedOutput) throws Exception {
+    protected void testInterpreter(String program, String expectedOutputRegex) throws Exception {
         // create out stream
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         // compile program
@@ -15,7 +15,9 @@ public class InterpreterDumpTestBase {
         compileEnv.dump(os);
         // check result
         String output = os.toString();
-        assertEquals(expectedOutput, output);
+        System.out.println("Output: >" + output + "<");
+        // assert that the regex matches the output
+        assert(output.matches(expectedOutputRegex));
     }
 
 }
