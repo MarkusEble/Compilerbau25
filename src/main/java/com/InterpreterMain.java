@@ -7,11 +7,7 @@ public class InterpreterMain {
     public static void main(String[] args) throws Exception {
         String input = new String("""
           {
-            DECLARE i;
-            FOR (i = 0; i < 10; i = i + 1;) {
-                PRINT(i);
-            };
-            PRINT 187;
+            PRINT 4 + 3 - 2;
           }
                 """);
         com.compiler.CompileEnv compileEnv = new com.compiler.CompileEnv(input, false);
