@@ -15,7 +15,6 @@ public class InterpreterDumpTestBase {
         compileEnv.dump(os);
         // check result
         String output = os.toString();
-        // assert that the regex matches the output
         assertEquals(expectedOutput, output);
     }
 
