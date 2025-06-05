@@ -42,7 +42,7 @@ public class StmtParser {
         Token curToken = m_lexer.lookAhead();
         final List<ASTStmtNode> stmtList = new ArrayList<>();
 
-        while (curToken.m_type != com.compiler.TokenIntf.Type.RBRACE) {
+        while (curToken.m_type != com.compiler.TokenIntf.Type.RBRACE && curToken.m_type != Type.CASE) { // RBrace and Case in Follow set of Statementlist
             stmtList.add(parseStmt());
             curToken = m_lexer.lookAhead();
         }
@@ -78,7 +78,7 @@ public class StmtParser {
         if (type == TokenIntf.Type.FOR) {
             return parseForLoopStmt();
         }
-      
+
         if (type == TokenIntf.Type.EXECUTE) {
         	return parseExecuteNTimesStmt();
         }
@@ -87,30 +87,56 @@ public class StmtParser {
             return parseNumericIfStmt();
         }
 
+        if (type == Type.SWITCH) {
+            return parseSwitchStmt();
+        }
+
+        if (type == Type.IF) {
+            return parseIfElseStmt();
+        }
+
+        if (type == Type.LOOP) {
+            return parseForLoop();
+        }
+
+        if(type == TokenIntf.Type.BREAK){
+            return parseBreakNode();
+        }
+
         m_lexer.throwCompilerException("Invalid begin of statement", "DECLARE or IDENTIFIER or PRINT or NUMERIC_IF");
         return null; // unreachable
     }
 
     public ASTStmtNode parseFunctionStmt() throws Exception {
+        // functionDecl: FUNCTION IDENTIFIER RPAREN paramList RPAREN LBRACE functionBody RBRACE SEMICOLON
         m_lexer.expect(Type.FUNCTION);
         String functionName = m_lexer.m_currentToken.m_value;
+
         m_lexer.expect(TokenIntf.Type.IDENT);
         m_lexer.expect(Type.LPAREN);
-        List<String> parameterList = parseParameterList();
-        parameterList.forEach(e -> m_symbolTable.createSymbol(e));
-        m_lexer.expect(TokenIntf.Type.RPAREN);
 
+        List<String> parameterList = parseParameterList();
+        parameterList.forEach(m_symbolTable::createSymbol);
+        m_functionTable.createFunction(functionName, parameterList);
+
+        m_lexer.expect(TokenIntf.Type.RPAREN);
         m_lexer.expect(TokenIntf.Type.LBRACE);
+
         List<ASTStmtNode> functionBody = parseFunctionBody();
+
         m_lexer.expect(TokenIntf.Type.RBRACE);
         m_lexer.expect(Type.SEMICOLON);
-        m_functionTable.createFunction(functionName, parameterList);
+
         return new ASTFunctionStmtNode(functionName, parameterList, functionBody);
     }
 
     private List<ASTStmtNode> parseFunctionBody() throws Exception {
+        // functionBody: returnStmt | stmt functionBody
         List<ASTStmtNode> stmtList = new ArrayList<>();
         while(m_lexer.m_currentToken.m_type != Type.RETURN){
+            if(m_lexer.m_currentToken.m_type == Type.RBRACE){
+                m_lexer.throwCompilerException("Invalid end of function body", "RETURN");
+            }
             stmtList.add(parseStmt());
         }
         stmtList.add(parseReturnStmt());
@@ -118,6 +144,7 @@ public class StmtParser {
     }
 
     private ASTStmtNode parseReturnStmt() throws Exception {
+        // returnStmt: RETURN expr
         m_lexer.expect(Type.RETURN);
         ASTStmtNode returnStmtNode = new ASTReturnStmtNode(m_exprParser.getQuestionMarkExpr());
         m_lexer.expect(Type.SEMICOLON);
@@ -125,6 +152,8 @@ public class StmtParser {
     }
 
     private List<String> parseParameterList() throws Exception {
+        // paramList: IDENTIFIER paramListPos | eps
+        // paramListPost: eps | COMMA IDENFIER paramListPost
         List<String> parameterList = new ArrayList<>();
         if(m_lexer.m_currentToken.m_type != Type.IDENT){
             return parameterList;
@@ -162,7 +191,6 @@ public class StmtParser {
 
     public ASTStmtNode parsePrintStmt() throws Exception {
         m_lexer.expect(Type.PRINT);
-
         ASTPrintStmtNode astPrintStmtNode = new ASTPrintStmtNode(m_exprParser.getQuestionMarkExpr());
         m_lexer.expect(Type.SEMICOLON);
         return astPrintStmtNode;
@@ -223,14 +251,44 @@ public class StmtParser {
     }
 
 
+    ASTStmtNode parseIfElseStmt() throws Exception {
+
+        // ifStmt -> IF LPAREN condition RPAREN LBRACE stmtList RBRACE elseStmt
+        // elseStmt -> eps
+        // elseStmt -> ELSE continueStmt
+        // continueStmt -> ifStmt
+        // continueStmt -> LBRACE stmtList RBRACE
+
+        m_lexer.expect(Type.IF);
+        m_lexer.expect(Type.LPAREN);
+        ASTExprNode condition = this.m_exprParser.getQuestionMarkExpr();
+        m_lexer.expect(Type.RPAREN);
+        m_lexer.expect(Type.LBRACE);
+        ASTStmtListNode ifStmtList = this.parseStmtlist();
+        m_lexer.expect(Type.RBRACE);
+
+        if(m_lexer.lookAhead().m_type == Type.ELSE) {
+            m_lexer.expect(Type.ELSE);
+            if(m_lexer.lookAhead().m_type == Type.LBRACE) {
+                m_lexer.expect(Type.LBRACE);
+                ASTStmtListNode elseStmtList = this.parseStmtlist();
+                m_lexer.expect(Type.RBRACE);
+                return new ASTIfElseNode(condition, ifStmtList, elseStmtList);
+            }
+            if(m_lexer.lookAhead().m_type == Type.IF) {
+                return new ASTIfElseNode(condition, ifStmtList, parseStmtlist());
+            }
+        }
+        return new ASTIfElseNode(condition, ifStmtList, null);
+    }
+
+
     ASTStmtNode parseNumericIfStmt() throws Exception {
-        // NUMERIC_IF LPAR expr RPAR LBRACE numericIfBlock RBRACE
+        // NUMERIC_IF LPAR expr RPAR numericIfBlock
         m_lexer.expect(Type.NUMERIC_IF);
         m_lexer.expect(Type.LPAREN);
         final ASTExprNode predicate = this.m_exprParser.getQuestionMarkExpr();
         m_lexer.expect(Type.RPAREN);
-        m_lexer.expect(Type.LBRACE);
-
 
         // numericIfBlock positiveBlock negativeBlock zeroBlock
         // positiveBlock: POSITIVE LBRACE stmtlist RBRACE
@@ -242,8 +300,6 @@ public class StmtParser {
         // zeroBlock: ZERO LBRACE stmtlist RBRACE
         final ASTStmtListNode zeroStmtList = parseNumericIfBlock(Type.ZERO);
 
-
-        m_lexer.expect(Type.RBRACE);
         return new ASTNumericIfNode(predicate, positiveStmtList, negativeStmtList, zeroStmtList);
     }
 
@@ -282,7 +338,23 @@ public class StmtParser {
         m_lexer.expect(Type.SEMICOLON);
         return new ASTDoWhileLoopStmtNode(predicate, body);
     }
-    
+
+    public ASTStmtNode parseForLoop() throws Exception {
+        //loopstmt : loopstart [stmtlist] loopend
+        m_lexer.expect(Type.LOOP);
+        m_lexer.expect(Type.LBRACE);
+        ASTStmtListNode body = parseStmtlist();
+        m_lexer.expect(Type.RBRACE);
+        m_lexer.expect(Type.ENDLOOP);
+        return new ASTLoopStmtNode(body);
+
+    }
+
+    private ASTStmtNode parseBreakNode() throws Exception {
+        m_lexer.expect(Type.BREAK);
+        return new ASTBreakStmtNode();
+    }
+
     ASTStmtNode parseExecuteNTimesStmt() throws Exception {
     	// EXECUTE integer|identifier TIMES LBRACE stmtList RBRACE SEMICOLON
     	m_lexer.expect(Type.EXECUTE);
@@ -304,5 +376,40 @@ public class StmtParser {
     	m_lexer.expect(Type.SEMICOLON);
     	
     	return new ASTExecuteNTimesNode(count, stmtlistNode);
+    }
+
+    private ASTStmtNode parseSwitchStmt() throws Exception {
+        // switch_statement -> SWITCH LPAREN expression RPAREN LBRACE case_list RBRACE
+        m_lexer.expect(Type.SWITCH);
+        m_lexer.expect(Type.LPAREN);
+        ASTExprNode expression = m_exprParser.getQuestionMarkExpr();
+        m_lexer.expect(Type.RPAREN);
+        m_lexer.expect(Type.LBRACE);
+        ASTCaseListNode caseList = parseCaseList();
+        m_lexer.expect(Type.RBRACE);
+        return new ASTSwitchStmtNode(expression, caseList);
+    }
+
+    private ASTCaseListNode parseCaseList() throws Exception {
+        // case_list -> case_item case_list | epsilon
+        Token curToken = m_lexer.lookAhead();
+        final List<ASTCaseNode> caseList = new ArrayList<>();
+
+        while (curToken.m_type == Type.CASE) {
+            caseList.add(parseCaseStmt());
+            curToken = m_lexer.lookAhead();
+        }
+        return new ASTCaseListNode(caseList);
+    }
+
+    private ASTCaseNode parseCaseStmt() throws Exception {
+        // case_item -> CASE LITERAL COLON statement_list
+        m_lexer.expect(Type.CASE);
+        Token curToken = m_lexer.lookAhead();
+        m_lexer.expect(Type.INTEGER);
+        ASTIntegerLiteralNode value = new ASTIntegerLiteralNode(curToken.m_value); //Integer
+        m_lexer.expect(Type.DOUBLECOLON); // should be renamed to COLON as double colon is "::"
+        ASTStmtListNode stmtList = parseStmtlist();
+        return new ASTCaseNode(value, stmtList);
     }
 }

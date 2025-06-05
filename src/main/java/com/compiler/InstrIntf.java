@@ -5,7 +5,7 @@ import java.io.OutputStreamWriter;
 public abstract class InstrIntf {
 	private static int m_nextId = 0;
     protected int m_value = 0;
-	protected int m_id;
+	protected int m_id = 0;
 
 	protected InstrIntf() {
 		m_id = m_nextId;
@@ -30,6 +30,13 @@ public abstract class InstrIntf {
 	 */
 	public int getId() {
 	    return m_id;
+	}
+
+	/**
+	 * reset m_nextId
+	 */
+	static public void resetNextId() {
+		m_nextId = 0;
 	}
 
 }
