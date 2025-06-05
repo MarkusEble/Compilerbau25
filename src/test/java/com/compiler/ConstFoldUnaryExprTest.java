@@ -10,8 +10,13 @@ public class ConstFoldUnaryExprTest extends InterpreterDumpTestBase {
                     PRINT -5;
                 }
                 """;
-        String expectedRegex = "entry:\n%(\\d+) = LITERAL -5\nPRINT %\\1\n\n";
-        testInterpreter(input, expectedRegex);
+        String expected = """
+entry:
+%0 = LITERAL -5
+PRINT %0
+
+""";
+        testInterpreter(input, expected);
     }
 
     @Test
@@ -21,9 +26,13 @@ public class ConstFoldUnaryExprTest extends InterpreterDumpTestBase {
                     PRINT !0;
                 }
                 """;
-        String expectedRegex = "entry:\n%(\\d+) = LITERAL 1\nPRINT %\\1\n\n";
-        testInterpreter(input, expectedRegex);
+        String expected = """
+entry:
+%0 = LITERAL 1
+PRINT %0
 
+""";
+        testInterpreter(input, expected);
     }
 
 }
