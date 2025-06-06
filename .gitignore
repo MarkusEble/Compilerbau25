@@ -20,5 +20,5 @@ buildNumber.properties
 .vscode
 
 # antlr results
-src/main/java/com/compiler/.antlr
+.antlr
 src/main/java/com/compiler/antlr
