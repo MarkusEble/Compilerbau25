@@ -10,7 +10,7 @@ expr:
 
      // sumExpr
      expr SUMOP expr #exprSumOp |
-     NUMBER #exprNumber |
+     NUMBER #exprNumber
 
      // shifExpr
 
