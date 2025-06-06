@@ -8,7 +8,6 @@ expr:
 
      // mulDivExpr
 
-
      // sumExpr
      expr SUMOP expr #exprSumOp |
      NUMBER #exprNumber
