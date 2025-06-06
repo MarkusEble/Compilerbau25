@@ -22,3 +22,4 @@ buildNumber.properties
 # antlr results
 .antlr
 src/main/java/com/compiler/antlr
+src/main/antlr4/main
