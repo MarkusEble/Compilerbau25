@@ -33,7 +33,6 @@ PRINT %0
 
 """;
         testInterpreter(input, expected);
-
     }
 
 }

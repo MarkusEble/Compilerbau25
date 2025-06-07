@@ -74,7 +74,11 @@ public class StmtParser {
         if (type == TokenIntf.Type.DO) {
             return parseDoWhileLoopStmt();
         }
-      
+
+        if (type == TokenIntf.Type.FOR) {
+            return parseForLoopStmt();
+        }
+
         if (type == TokenIntf.Type.EXECUTE) {
         	return parseExecuteNTimesStmt();
         }
@@ -164,6 +168,25 @@ public class StmtParser {
             }
             return parameterList;
         }
+    }
+
+    private ASTStmtNode parseForLoopStmt() throws Exception {
+        // forStmt: FOR LPAREN stmt questionMarkExpr SEMICOLON stmt RPAREN blockStmt SEMICOLON
+        m_lexer.expect(TokenIntf.Type.FOR);
+        m_lexer.expect(TokenIntf.Type.LPAREN);
+
+        ASTStmtNode initStmt = parseStmt();
+
+        ASTExprNode predicate = this.m_exprParser.getQuestionMarkExpr();
+        m_lexer.expect(TokenIntf.Type.SEMICOLON);
+
+        ASTStmtNode updateStmt = parseStmt();
+
+        m_lexer.expect(TokenIntf.Type.RPAREN);
+        ASTStmtNode body = parseBlockStmt();
+        m_lexer.expect(TokenIntf.Type.SEMICOLON);
+
+        return new ASTForLoopStmtNode(initStmt, predicate, updateStmt, body);
     }
 
     public ASTStmtNode parsePrintStmt() throws Exception {
@@ -331,7 +354,7 @@ public class StmtParser {
         m_lexer.expect(Type.BREAK);
         return new ASTBreakStmtNode();
     }
-    
+
     ASTStmtNode parseExecuteNTimesStmt() throws Exception {
     	// EXECUTE integer|identifier TIMES LBRACE stmtList RBRACE SEMICOLON
     	m_lexer.expect(Type.EXECUTE);
